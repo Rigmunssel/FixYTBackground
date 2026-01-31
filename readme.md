@@ -4,7 +4,7 @@ Play YouTube videos in the background on Android Firefox.
 
 ## Installation
 
-### Option 1: Firefox Developer Edition (Will be available as extension when I get it approved by firefox)
+### Option 1: Firefox Developer Edition (Will be available for normal firefox as extension when I get it approved)
 
 1. Install **Firefox Nightly** from Play Store
 2. Go to `about:config`

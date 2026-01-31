@@ -79,10 +79,33 @@
 
     // ========== 4. TRACK USER ACTIONS ==========
     let lastUserAction = 0;
-    ['click', 'touchstart', 'touchend', 'keydown', 'pointerdown'].forEach(type => {
-      document.addEventListener(type, () => {
+    let userWantsPause = false;
+    
+    // Track all user interactions
+    ['click', 'touchstart', 'touchend', 'keydown', 'pointerdown', 'mousedown'].forEach(type => {
+      // Capture on window to catch everything
+      window.addEventListener(type, (e) => {
         lastUserAction = Date.now();
-        log('👆 User action:', type);
+        log('👆 User action:', type, 'target:', e.target?.tagName, e.target?.className?.slice?.(0, 50));
+        
+        // Check if clicking on player controls (pause button)
+        const target = e.target;
+        if (target) {
+          const isPlayerControl = 
+            target.closest('.ytp-play-button') ||
+            target.closest('.player-controls') ||
+            target.closest('[class*="pause"]') ||
+            target.closest('[class*="play"]') ||
+            target.closest('button') ||
+            target.tagName === 'VIDEO';
+          
+          if (isPlayerControl) {
+            log('🎮 Player control interaction detected');
+            userWantsPause = true;
+            // Reset after 2 seconds
+            setTimeout(() => { userWantsPause = false; }, 2000);
+          }
+        }
       }, true);
     });
 
@@ -91,11 +114,16 @@
     HTMLMediaElement.prototype.pause = function() {
       const stack = new Error().stack;
       const timeSince = Date.now() - lastUserAction;
-      log('⏸️ pause() called, timeSinceAction:', timeSince, 'ms');
+      log('⏸️ pause() called, timeSinceAction:', timeSince, 'ms, userWantsPause:', userWantsPause);
       log('📚 Call stack:', stack?.split('\n').slice(1, 4).join(' <- '));
       
-      if (timeSince < 1000) {
-        log('✅ Allowing pause (user action)');
+      // Allow pause if:
+      // 1. Recent user action (within 2 seconds) OR
+      // 2. User clicked player controls OR
+      // 3. MediaSession triggered it (userWantsPause flag)
+      if (timeSince < 2000 || userWantsPause) {
+        log('✅ Allowing pause (user initiated)');
+        userWantsPause = false;
         return origPause.call(this);
       }
       log('🛑 BLOCKED pause (automatic)');
@@ -190,11 +218,26 @@
     if ('mediaSession' in navigator) {
       try {
         navigator.mediaSession.setActionHandler('pause', () => {
-          log('📱 MediaSession pause - ignoring');
+          log('📱 MediaSession pause - user wants to pause');
+          userWantsPause = true;
+          lastUserAction = Date.now();
+          // Find and pause videos
+          document.querySelectorAll('video').forEach(v => {
+            origPause.call(v);
+          });
         });
         navigator.mediaSession.setActionHandler('play', () => {
           log('📱 MediaSession play - resuming videos');
+          lastUserAction = Date.now();
           document.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
+        });
+        navigator.mediaSession.setActionHandler('stop', () => {
+          log('📱 MediaSession stop - user wants to stop');
+          userWantsPause = true;
+          lastUserAction = Date.now();
+          document.querySelectorAll('video').forEach(v => {
+            origPause.call(v);
+          });
         });
         log('✅ MediaSession handlers set');
       } catch (e) {

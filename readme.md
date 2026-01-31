@@ -13,7 +13,7 @@ Play YouTube videos in the background on Android Firefox.
 5. Tap the Firefox logo **5 times** to enable debug menu
 6. Install `backstage-play.xpi` to your device.
 7. Go back to **Settings** → **Install extension from file**
-8. Select the file `backstage-play.xpi` (change file from`.xpi` to `.zip` if file appears greyed out)
+8. Select the file `backstage-play.xpi` (rename the file-extension from`.xpi` to `.zip` if file appears greyed out)
 
 ### Option 2: Regular Firefox (After Approval)
 

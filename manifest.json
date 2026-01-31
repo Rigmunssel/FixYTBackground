@@ -18,7 +18,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "backstage-play@example.com",
+      "id": "backstage-play@rigmunssel.github.io",
       "strict_min_version": "113.0"
     }
   }

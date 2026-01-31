@@ -6,25 +6,33 @@ if (Test-Path $outputFile) {
     Remove-Item $outputFile
 }
 
-# Create temporary directory
-$tempDir = "temp_build"
-if (Test-Path $tempDir) {
-    Remove-Item -Recurse -Force $tempDir
+# Use .NET ZipArchive to manually add files with forward slashes
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+$zipPath = Join-Path $PWD $outputFile
+$zip = [System.IO.Compression.ZipFile]::Open($zipPath, 'Create')
+
+# Function to add file with forward slash path
+function Add-FileToZip($zip, $localPath, $entryName) {
+    $entry = $zip.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+    $entryStream = $entry.Open()
+    $fileStream = [System.IO.File]::OpenRead($localPath)
+    $fileStream.CopyTo($entryStream)
+    $fileStream.Close()
+    $entryStream.Close()
 }
-New-Item -ItemType Directory -Path $tempDir | Out-Null
 
-# Copy files with proper structure
-Copy-Item "manifest.json" -Destination $tempDir
-Copy-Item "LICENSE" -Destination $tempDir
-Copy-Item -Recurse "scripts" -Destination $tempDir
-Copy-Item -Recurse "icons" -Destination $tempDir
+# Add root files
+Add-FileToZip $zip "manifest.json" "manifest.json"
+Add-FileToZip $zip "LICENSE" "LICENSE"
 
-# Create ZIP with forward slashes
-Add-Type -Assembly System.IO.Compression.FileSystem
-$compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
-[System.IO.Compression.ZipFile]::CreateFromDirectory($tempDir, $outputFile, $compressionLevel, $false)
+# Add scripts folder with forward slashes
+Add-FileToZip $zip "scripts\content.js" "scripts/content.js"
 
-# Clean up
-Remove-Item -Recurse -Force $tempDir
+# Add icons folder with forward slashes
+Add-FileToZip $zip "icons\icon.svg" "icons/icon.svg"
+
+$zip.Dispose()
 
 Write-Host "Built: $outputFile" -ForegroundColor Green

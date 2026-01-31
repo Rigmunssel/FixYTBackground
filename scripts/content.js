@@ -32,51 +32,51 @@
       return origProtoAdd.call(this, type, listener, options);
     };
 
-    // Track user actions
+    // State tracking
     let lastUserAction = 0;
-    let userWantsPause = false;
+    let pauseAllowedAt = 0;  // Timestamp when we allowed a pause through
+    let userIntentionallyPaused = false;
+    
+    // Track user interactions
     ['click', 'touchstart', 'touchend', 'keydown', 'pointerdown', 'mousedown'].forEach(type => {
-      window.addEventListener(type, (e) => {
-        lastUserAction = Date.now();
-        const target = e.target;
-        if (target) {
-          const isPlayerControl = 
-            target.closest('.ytp-play-button') ||
-            target.closest('.player-controls') ||
-            target.closest('[class*="pause"]') ||
-            target.closest('[class*="play"]') ||
-            target.closest('button') ||
-            target.tagName === 'VIDEO';
-          if (isPlayerControl) {
-            userWantsPause = true;
-            setTimeout(() => { userWantsPause = false; }, 2000);
-          }
-        }
-      }, true);
+      window.addEventListener(type, () => { lastUserAction = Date.now(); }, true);
     });
 
-    // Intercept video pause
+    // Intercept video pause - only allow if recent user action
     const origPause = HTMLMediaElement.prototype.pause;
     HTMLMediaElement.prototype.pause = function() {
       const timeSince = Date.now() - lastUserAction;
-      if (timeSince < 2000 || userWantsPause) {
-        userWantsPause = false;
+      if (timeSince < 2000) {
+        pauseAllowedAt = Date.now();
         return origPause.call(this);
       }
+      // Block automatic pause
     };
 
-    // Auto-resume on unexpected pause
+    // Watch videos for pause/play events
     const patchVideo = (video) => {
       if (video._backstage) return;
       video._backstage = true;
+      
       video.addEventListener('pause', () => {
-        if (Date.now() - lastUserAction > 1000 && !video.ended) {
+        // If pause happened right after we allowed it, user intended to pause
+        if (Date.now() - pauseAllowedAt < 500) {
+          userIntentionallyPaused = true;
+        } else if (!video.ended) {
+          // Unexpected pause (e.g., YouTube found another way) - resume
           setTimeout(() => {
-            if (video.paused && !video.ended) video.play().catch(() => {});
+            if (video.paused && !video.ended && !userIntentionallyPaused) {
+              video.play().catch(() => {});
+            }
           }, 100);
         }
       });
+      
+      video.addEventListener('play', () => {
+        userIntentionallyPaused = false;
+      });
     };
+    
     new MutationObserver(() => {
       document.querySelectorAll('video').forEach(patchVideo);
     }).observe(document, { childList: true, subtree: true });
@@ -96,30 +96,10 @@
       Object.defineProperty(document, 'onresume', { get: () => null, set: () => {}, configurable: true });
     }
 
-    // MediaSession handlers
-    if ('mediaSession' in navigator) {
-      try {
-        navigator.mediaSession.setActionHandler('pause', () => {
-          userWantsPause = true;
-          lastUserAction = Date.now();
-          document.querySelectorAll('video').forEach(v => origPause.call(v));
-        });
-        navigator.mediaSession.setActionHandler('play', () => {
-          lastUserAction = Date.now();
-          document.querySelectorAll('video').forEach(v => v.play().catch(() => {}));
-        });
-        navigator.mediaSession.setActionHandler('stop', () => {
-          userWantsPause = true;
-          lastUserAction = Date.now();
-          document.querySelectorAll('video').forEach(v => origPause.call(v));
-        });
-      } catch (e) {}
-    }
-
-    // Periodic force resume
+    // Periodic check - resume if paused unexpectedly
     setInterval(() => {
       document.querySelectorAll('video').forEach(v => {
-        if (v.paused && !v.ended && v.currentTime > 0 && Date.now() - lastUserAction > 2000) {
+        if (v.paused && !v.ended && v.currentTime > 0 && !userIntentionallyPaused) {
           v.play().catch(() => {});
         }
       });

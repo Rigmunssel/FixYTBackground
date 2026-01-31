@@ -1,7 +1,10 @@
 @echo off
 echo Building Backstage Play extension...
 if exist backstage-play.xpi del backstage-play.xpi
-powershell Compress-Archive -Path manifest.json,scripts,icons,LICENSE -DestinationPath backstage-play.zip -Force
-ren backstage-play.zip backstage-play.xpi
-echo Done: backstage-play.xpi
+powershell -ExecutionPolicy Bypass -File build.ps1
+if exist backstage-play.xpi (
+    echo Done: backstage-play.xpi
+) else (
+    echo Build failed!
+)
 pause

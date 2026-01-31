@@ -4,17 +4,21 @@ Play YouTube videos in the background on Android.
 
 ## Installation (Android)
 
-### Step 1: Download the Extension
-1. Tap **[backstage-play.xpi](backstage-play.xpi?raw=true)** to download
-
-### Step 2: Install in Firefox
+### Step 1: Enable Custom Collections
 1. Open **Firefox** on your Android phone
-2. Tap the menu (three dots) → **Settings** → **About Firefox**
-3. Tap the Firefox logo **5 times** (enables advanced features)
+2. Tap menu (⋮) → **Settings** → **About Firefox**
+3. Tap the Firefox logo **5 times** (a message will confirm debug mode enabled)
 4. Go back to **Settings**
-5. Tap **Install extension from file**
-6. Select the downloaded `backstage-play.xpi` file
-7. Tap **Add** when prompted
+5. Tap **Custom Add-on collection**
+6. Enter:
+   - **User ID:** `19716518`
+   - **Collection name:** `FixYTBackground`
+7. Tap **OK** — Firefox will restart
+
+### Step 2: Install the Extension
+1. After restart, tap menu (⋮) → **Add-ons**
+2. Find **Backstage Play** and tap **Install**
+3. Tap **Add** when prompted
 
 ### Step 3: Disable Battery Optimization (Required!)
 1. Open Android **Settings** → **Apps** → **Firefox**
@@ -23,14 +27,14 @@ Play YouTube videos in the background on Android.
 Without this, Android will stop playback when screen is off.
 
 ## Usage
-1. Open YouTube in Firefox (not the YouTube app)
+1. Open **youtube.com** in Firefox (not the YouTube app)
 2. Play a video
 3. Switch apps or turn off screen
 4. Audio continues playing ✓
 
 ## Troubleshooting
 - **Video still pauses?** → Check battery optimization is disabled for Firefox
-- **Can't install?** → Make sure you're using Firefox, not Chrome
+- **Extension not showing?** → Make sure you entered the User ID and Collection name exactly as shown
 
 ## License
 GPL-3.0

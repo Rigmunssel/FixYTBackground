@@ -20,7 +20,19 @@ Play YouTube videos in the background on Android.
 2. Find **Backstage Play** and tap **Install**
 3. Tap **Add** when prompted
 
-### Step 3: Disable Battery Optimization (Required!)
+### Step 3: Configure Firefox (Required!)
+
+Firefox has a built-in feature that suspends background media. You must disable it:
+
+1. Open a new tab and type `about:config`
+2. Search for `dom.suspend_background_media`
+3. Tap the toggle to set it to **false**
+4. Search for `dom.audio.capture.enabled`
+5. Tap the toggle to set it to **true**
+
+> **Why?** Firefox kills video connections when tabs are backgrounded. These settings prevent that.
+
+### Step 4: Disable Battery Optimization
 1. Open Android **Settings** → **Apps** → **Firefox**
 2. Tap **Battery** → Select **Unrestricted**
 
@@ -33,7 +45,8 @@ Without this, Android will stop playback when screen is off.
 4. Audio continues playing ✓
 
 ## Troubleshooting
-- **Video still pauses?** → Check battery optimization is disabled for Firefox
+- **Video still pauses?** → Make sure you completed Step 3 (Firefox about:config settings)
+- **Audio cuts out after a few seconds?** → Check battery optimization is disabled (Step 4)
 - **Extension not showing?** → Make sure you entered the User ID and Collection name exactly as shown
 
 ## License

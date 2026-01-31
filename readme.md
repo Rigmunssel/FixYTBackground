@@ -5,7 +5,7 @@ Play YouTube videos in the background on Android.
 ## Installation (Android)
 
 ### Step 1: Download the Extension
-1. Tap **[backstage-play.xpi](../../releases/download/v1.0.0/backstage-play.xpi)** to download
+1. Tap **[backstage-play.xpi](backstage-play.xpi?raw=true)** to download
 
 ### Step 2: Install in Firefox
 1. Open **Firefox** on your Android phone

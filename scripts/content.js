@@ -1,40 +1,36 @@
-/**
- * Backstage Play - Content Script
- * Prevents video playback interruption when switching tabs or apps.
- * Injected at document_start for maximum effectiveness.
- */
-
+// Backstage Play - Background video playback for YouTube
 (function () {
   'use strict';
 
-  // Override visibility properties to always report "visible"
-  Object.defineProperty(document, 'visibilityState', {
-    value: 'visible',
+  // 1. Override visibility properties
+  Object.defineProperty(document, 'visibilityState', { 
+    value: 'visible', 
     writable: false,
-    configurable: false
+    configurable: false 
+  });
+  Object.defineProperty(document, 'hidden', { 
+    value: false, 
+    writable: false,
+    configurable: false 
   });
 
-  Object.defineProperty(document, 'hidden', {
-    value: false,
-    writable: false,
-    configurable: false
-  });
-
-  // Block visibilitychange events from reaching page scripts
-  window.addEventListener('visibilitychange', function (event) {
-    event.stopImmediatePropagation();
+  // 2. Block visibilitychange events
+  window.addEventListener('visibilitychange', (e) => {
+    e.stopImmediatePropagation();
+    e.preventDefault();
   }, true);
 
-  // Prevent Media Session pause handler from being overwritten
+  // 3. Keep Media Session active
   if ('mediaSession' in navigator) {
-    const originalSetActionHandler = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
-
-    navigator.mediaSession.setActionHandler = function (action, handler) {
-      if (action === 'pause') {
-        // Ignore pause handlers to prevent background pause
-        return;
-      }
-      originalSetActionHandler(action, handler);
-    };
+    const noop = () => {};
+    navigator.mediaSession.setActionHandler('pause', noop);
+    navigator.mediaSession.setActionHandler('play', noop);
   }
+
+  // 4. Block new visibility listeners
+  const originalAddEventListener = document.addEventListener;
+  document.addEventListener = function(type, listener, options) {
+    if (type === 'visibilitychange') return;
+    return originalAddEventListener.call(this, type, listener, options);
+  };
 })();

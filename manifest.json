@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Backstage Play",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Enables seamless multitasking by preventing tab-suspension during video playback on youtube.com.",
   "permissions": [],
   "content_scripts": [
@@ -19,9 +19,9 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "backstage-play@rigmunssel.github.io",
-      "strict_min_version": "113.0",
+      "strict_min_version": "128.0",
       "data_collection_permissions": {
-        "required": false
+        "required": ["none"]
       }
     }
   }

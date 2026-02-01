@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Youtube Background Play Fix",
+  "version": "1.0.4",
+  "author": "Rigmunssel",
+  "homepage_url": "https://github.com/Rigmunssel/FixYTBackground",
+  "description": "Listen to YouTube in the background. Prevents auto-pause and tab-suspension while you multitask.",
+  "permissions": [],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": ["scripts/content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "icons": {
+    "48": "icons/icon_r.png",
+    "128": "icons/icon_r.png"
+  }
+}

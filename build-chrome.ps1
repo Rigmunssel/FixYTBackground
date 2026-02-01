@@ -1,5 +1,5 @@
  Build script for Chrome extension
-$outputFile = "Youtube-Background-Play-Fix.zip"
+$outputFile = "ytbackground-chrome.zip"
 
 # Remove old build if exists
 if (Test-Path $outputFile) {

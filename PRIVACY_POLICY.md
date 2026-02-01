@@ -1,0 +1,1 @@
+The extension does not collect, store, or transmit any user data or browsing history. All operations are performed locally on the user's device.

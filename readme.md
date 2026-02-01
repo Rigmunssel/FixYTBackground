@@ -1,4 +1,4 @@
-# Backstage Play
+# 
 
 Play YouTube videos in the background on Android Firefox.
 
@@ -21,17 +21,30 @@ Security Notice: > By setting xpinstall.signatures.required to false, you are di
 Why this is needed: My extension is currently under manual review by Mozilla. Until it is approved, it is technically "unsigned." 
 However the whole project is fully open source so you can confirm yourself that there is nothing nasty in there :).
 
-
 ### Option 2: Regular Firefox (After Approval)
 
 Once approved by Mozilla, install directly from Firefox Add-ons.
 
 ## Usage
-
 1. Open **youtube.com** in Firefox (not the YouTube app)
 2. Play a video
 3. Switch apps or turn off screen
 4. Audio continues playing ✓
+
+
+
+
+### Chrome (Desktop)
+
+1. Download `ytbackground-chrome.zip` to your device
+2. Unzip the file to a folder
+3. Open Chrome and go to `chrome://extensions`
+4. Enable **Developer mode** (toggle in top right corner)
+5. Click **Load unpacked**
+6. Select the unzipped folder
+
+
+
 
 ## License
 

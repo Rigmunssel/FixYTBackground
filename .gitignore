@@ -1,0 +1,9 @@
+# Build output
+*.xpi
+
+# Documentation/notes
+errors.md
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -31,7 +31,7 @@ Add-FileToZip $zip "LICENSE" "LICENSE"
 Add-FileToZip $zip "scripts\content.js" "scripts/content.js"
 
 # Add icons folder with forward slashes
-Add-FileToZip $zip "icons\icon.svg" "icons/icon.svg"
+Add-FileToZip $zip "icons\icon.png" "icons/icon.png"
 
 $zip.Dispose()
 

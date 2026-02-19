@@ -1,30 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Backstage Play",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "author": "Rigmunssel",
   "homepage_url": "https://github.com/Rigmunssel/FixYTBackground",
-  "description": "Enables seamless multitasking by preventing tab-suspension during video playback on youtube.com.",
+  "description": "Enables seamless multitasking by preventing tab-suspension during video playback on YouTube and YouTube Music.",
   "permissions": [],
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
-      "js": ["scripts/content.js"],
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*",
+        "*://music.youtube.com/*"
+      ],
+      "js": [
+        "scripts/content.js"
+      ],
       "run_at": "document_start",
-      "all_frames": true
+      "all_frames": true,
+      "world": "MAIN"
     }
   ],
-  "icons": {
-    "48": "icons/icon.png",
-    "96": "icons/icon.png"
-  },
   "browser_specific_settings": {
     "gecko": {
       "id": "backstage-play@rigmunssel.github.io",
       "strict_min_version": "128.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
-    }
+    },
+    "gecko_android": {}
   }
 }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Backstage Play",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Rigmunssel",
   "homepage_url": "https://github.com/Rigmunssel/FixYTBackground",
   "description": "Enables seamless multitasking by preventing tab-suspension during video playback on YouTube and YouTube Music.",

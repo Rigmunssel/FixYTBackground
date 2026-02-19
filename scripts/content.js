@@ -1,10 +1,10 @@
 /**
- * Backstage Play v1.5.0
+ * Backstage Play v1.2.0
  * Copyright (C) 2026 Rigmunssel
  * Licensed under GNU General Public License v3.0
  * Repository: github.com/Rigmunssel/FixYTBackground
  *
- * v1.5.0 — Pre-emptive advance: clicks next 4s before the current
+ * v1.2.0 — Pre-emptive advance: clicks next 4s before the current
  * video ends so the transition starts while the song is still playing.
  * Uses timeupdate events for precise remaining-time tracking instead
  * of polling vid.ended (which fires late in background tabs).
@@ -31,7 +31,7 @@
 
   // ── Pre-emptive advance tuning ─────────────────────────────────
   const PRE_ADVANCE_SEC = 4;        // click next this many seconds before end
-  const ADVANCE_RETRY_DELAY = 8000; // retry click if video ID hasn't changed
+  const ADVANCE_RETRY_DELAY = 7000; // retry click if video ID hasn't changed
   const ADVANCE_MAX_RETRIES = 3;    // give up after this many retries
   const ADVANCE_POLL_INTERVAL = 2000; // fallback poll for ended/stuck detection
 
@@ -367,5 +367,5 @@
   // ── Boot ───────────────────────────────────────────────────────
   startLoop();
   window.addEventListener("pagehide", () => clearTimeout(loopTimer));
-  log("v1.5.0 ready");
+  log("v1.2.0 ready");
 })();

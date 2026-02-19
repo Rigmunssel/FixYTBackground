@@ -1,12 +1,21 @@
 /**
- * Backstage Play v1.3.0
+ * Backstage Play v1.5.0
  * Copyright (C) 2026 Rigmunssel
  * Licensed under GNU General Public License v3.0
  * Repository: github.com/Rigmunssel/FixYTBackground
+ *
+ * v1.5.0 — Pre-emptive advance: clicks next 4s before the current
+ * video ends so the transition starts while the song is still playing.
+ * Uses timeupdate events for precise remaining-time tracking instead
+ * of polling vid.ended (which fires late in background tabs).
  */
 "use strict";
 
 (() => {
+  const TAG = "[BackstagePlay]";
+  const ts = () => new Date().toTimeString().slice(0, 8);
+  const log = (...a) => console.log(TAG, ts(), ...a);
+
   const origHiddenDesc = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
   const origAddEvent = EventTarget.prototype.addEventListener;
   const origPause = HTMLMediaElement.prototype.pause;
@@ -19,13 +28,23 @@
   const PREPAUSE_SPACING = 80;
   const RESUME_INTERVAL = 3000;
   const USER_ACTION_WINDOW = 2000;
-  const ADVANCE_CHECK_INTERVAL = 3000;
-  const ADVANCE_RETRY_DELAY = 6000;
+
+  // ── Pre-emptive advance tuning ─────────────────────────────────
+  const PRE_ADVANCE_SEC = 4;        // click next this many seconds before end
+  const ADVANCE_RETRY_DELAY = 8000; // retry click if video ID hasn't changed
+  const ADVANCE_MAX_RETRIES = 3;    // give up after this many retries
+  const ADVANCE_POLL_INTERVAL = 2000; // fallback poll for ended/stuck detection
 
   let loopTimer = null;
   let lastRealHidden = null;
   let userPaused = false;
   let lastUserAction = 0;
+
+  // ── Advance state ──────────────────────────────────────────────
+  let advTriggered = false;    // true once we've clicked next for current video
+  let advForId = "";           // video ID we triggered advance for
+  let advClickTime = 0;        // Date.now() when we last clicked
+  let advRetries = 0;          // how many times we've retried for this video
 
   const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 
@@ -39,6 +58,10 @@
       if (!playingOnly || !v.paused) return v;
     }
     return null;
+  };
+
+  const getVideoId = () => {
+    try { return new URL(location.href).searchParams.get("v"); } catch { return null; }
   };
 
   // ── Visibility spoofing ────────────────────────────────────────
@@ -110,32 +133,8 @@
     }
   };
 
-  new MutationObserver(() => {
-    for (const v of document.querySelectorAll("video")) {
-      if (v._bp) continue;
-      v._bp = true;
-      v.addEventListener("play", () => { userPaused = false; });
-    }
-  }).observe(document, { childList: true, subtree: true });
-
   // ── Media session: keep playbackState in sync ─────────────────
   setInterval(syncPlaybackState, 5000);
-
-  new MutationObserver(() => {
-    for (const v of document.querySelectorAll("video")) {
-      if (v._bpSync) continue;
-      v._bpSync = true;
-      origAddEvent.call(v, "play", syncPlaybackState);
-      origAddEvent.call(v, "pause", syncPlaybackState);
-      origAddEvent.call(v, "timeupdate", () => {
-        const now = Date.now();
-        if (!v._bpLastPos || now - v._bpLastPos > 10000) {
-          v._bpLastPos = now;
-          syncPlaybackState();
-        }
-      });
-    }
-  }).observe(document, { childList: true, subtree: true });
 
   // ── Keep-alive: synthetic events to prevent idle detection ─────
   const ping = () => {
@@ -195,13 +194,7 @@
     }
   }, RESUME_INTERVAL);
 
-  // ── Auto-advance: click next video when current one ends ───────
-  const TAG = "[BackstagePlay]";
-  const ts = () => new Date().toTimeString().slice(0, 8);
-  const getVideoId = () => {
-    try { return new URL(location.href).searchParams.get("v"); } catch { return null; }
-  };
-
+  // ── Auto-advance: find next click target ───────────────────────
   const findNextClickTarget = () => {
     // 1. Mobile playlist: next item after the selected one
     const mSel = document.querySelector(
@@ -234,45 +227,145 @@
     return null;
   };
 
-  let advAttempt = 0;   // timestamp of first advance attempt (0 = idle)
-  let advFromId = "";    // video ID when advance was triggered
-
-  setInterval(() => {
-    if (!getRealHidden()) return;
-
-    const vid = document.querySelector("video");
-    if (!vid) return;
-    const curId = getVideoId();
-
-    // Detect successful advance: video ID changed since our attempt
-    if (advAttempt && curId && curId !== advFromId) {
-      console.log(`${TAG} ${ts()} Advanced to ${curId} (${Date.now() - advAttempt}ms)`);
-      advAttempt = 0;
-      advFromId = "";
+  // ── Advance: attempt to go to next video ───────────────────────
+  const tryAdvance = (reason) => {
+    if (userPaused) return;
+    if (advRetries >= ADVANCE_MAX_RETRIES) {
+      log("max retries reached, giving up for", advForId);
       return;
     }
 
-    // Video ended and not user-paused → try to advance
-    if (vid.ended && !userPaused) {
-      const target = findNextClickTarget();
-      if (!target) return;
+    const target = findNextClickTarget();
+    if (!target) {
+      log("no next target found");
+      return;
+    }
 
-      if (!advAttempt) {
-        // First attempt
-        advFromId = curId;
-        advAttempt = Date.now();
-        console.log(`${TAG} ${ts()} Video ended, advancing via ${target.src}`);
-        target.el.click();
-      } else if (Date.now() - advAttempt > ADVANCE_RETRY_DELAY) {
-        // Retry — previous click didn't result in navigation
-        console.log(`${TAG} ${ts()} Retrying advance via ${target.src}`);
-        advAttempt = Date.now();
-        target.el.click();
+    const curId = getVideoId();
+    advForId = curId;
+    advTriggered = true;
+    advClickTime = Date.now();
+    advRetries++;
+
+    log(`advance(${reason}) via ${target.src}, retry#${advRetries}, id=${curId}`);
+    target.el.click();
+  };
+
+  // ── Reset advance state when video ID changes (successful nav) ─
+  const checkAdvanceSuccess = () => {
+    if (!advTriggered) return;
+    const curId = getVideoId();
+    if (curId && curId !== advForId) {
+      log(`advanced OK → ${curId} (took ${Date.now() - advClickTime}ms)`);
+      advTriggered = false;
+      advForId = "";
+      advClickTime = 0;
+      advRetries = 0;
+    }
+  };
+
+  // ── Video element observer: attach timeupdate for pre-emptive advance ─
+  new MutationObserver(() => {
+    for (const v of document.querySelectorAll("video")) {
+      if (v._bpAdv) continue;
+      v._bpAdv = true;
+
+      // Reset advance state when a new video starts playing
+      v.addEventListener("play", () => {
+        userPaused = false;
+        // Check if this is a genuinely new video (ID changed)
+        const curId = getVideoId();
+        if (advTriggered && curId && curId !== advForId) {
+          log(`play event: new video ${curId}, resetting advance state`);
+          advTriggered = false;
+          advForId = "";
+          advClickTime = 0;
+          advRetries = 0;
+        }
+      });
+
+      // ── Core: timeupdate-driven pre-emptive advance ────────
+      origAddEvent.call(v, "timeupdate", () => {
+        // Sync media session (throttled)
+        const now = Date.now();
+        if (!v._bpLastPos || now - v._bpLastPos > 10000) {
+          v._bpLastPos = now;
+          syncPlaybackState();
+        }
+
+        // Only act when tab is hidden and video is playing
+        if (!getRealHidden()) return;
+        if (v.paused || v.ended || userPaused) return;
+        if (!isFinite(v.duration) || v.duration <= 0) return;
+
+        const remaining = v.duration - v.currentTime;
+        const curId = getVideoId();
+
+        // Check if a previous advance already succeeded
+        checkAdvanceSuccess();
+
+        // Already triggered for this video? Don't re-trigger from timeupdate.
+        if (advTriggered && advForId === curId) return;
+
+        // Pre-emptive: remaining ≤ PRE_ADVANCE_SEC → click next now
+        if (remaining <= PRE_ADVANCE_SEC) {
+          log(`remaining=${remaining.toFixed(1)}s, pre-advancing`);
+          tryAdvance("pre-emptive");
+        }
+      });
+
+      // ── Fallback: ended event (in case timeupdate didn't fire) ─
+      origAddEvent.call(v, "ended", () => {
+        if (!getRealHidden()) return;
+        if (userPaused) return;
+
+        const curId = getVideoId();
+        checkAdvanceSuccess();
+
+        if (!advTriggered || advForId !== curId) {
+          log("ended event fallback: timeupdate missed, advancing now");
+          tryAdvance("ended-fallback");
+        }
+      });
+
+      // Sync on play/pause
+      origAddEvent.call(v, "play", syncPlaybackState);
+      origAddEvent.call(v, "pause", syncPlaybackState);
+    }
+  }).observe(document, { childList: true, subtree: true });
+
+  // ── Fallback poll: retry if advance didn't navigate ────────────
+  // Catches edge cases where click didn't work or video got stuck
+  setInterval(() => {
+    if (!getRealHidden()) return;
+    if (userPaused) return;
+
+    const curId = getVideoId();
+
+    // Check if advance succeeded (ID changed)
+    checkAdvanceSuccess();
+
+    // If we triggered an advance but ID hasn't changed, retry
+    if (advTriggered && advForId === curId && advClickTime) {
+      const elapsed = Date.now() - advClickTime;
+      if (elapsed > ADVANCE_RETRY_DELAY) {
+        log(`advance retry: ${elapsed}ms since last click, id still ${curId}`);
+        tryAdvance("retry");
       }
     }
-  }, ADVANCE_CHECK_INTERVAL);
+
+    // Catch stuck ended videos we somehow missed entirely
+    if (!advTriggered) {
+      const vid = document.querySelector("video");
+      if (vid && vid.ended && !vid.paused) {
+        log("poll: detected ended video with no advance triggered");
+        tryAdvance("poll-ended");
+      }
+    }
+  }, ADVANCE_POLL_INTERVAL);
 
   // ── Boot ───────────────────────────────────────────────────────
   startLoop();
   window.addEventListener("pagehide", () => clearTimeout(loopTimer));
+  log("v1.5.0 ready");
 })();
